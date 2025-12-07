@@ -112,7 +112,7 @@ const ToolCard: React.FC<{ tool: Tool }> = ({ tool }) => {
           <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100">
             <Link 
               to={`/tool/${tool.id}`}
-              className="flex items-center justify-center py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+              className="flex items-center justify-center py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-full hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95"
             >
               Details
             </Link>
@@ -120,7 +120,7 @@ const ToolCard: React.FC<{ tool: Tool }> = ({ tool }) => {
               href={tool.websiteUrl} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="flex items-center justify-center py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-brand-600 transition-colors"
+              className="flex items-center justify-center py-2 text-sm font-semibold text-white bg-slate-900 rounded-full hover:bg-brand-600 hover:shadow-md hover:shadow-brand-500/20 transition-all active:scale-95"
             >
               Visit <ExternalLink size={14} className="ml-1.5" />
             </a>

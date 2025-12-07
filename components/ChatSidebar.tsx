@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { GoogleGenAI } from "@google/genai";
-import { X, Send, Bot, PanelRightClose, Trash2, Sparkles, User, BarChart2, Table as TableIcon, GripVertical, ExternalLink } from 'lucide-react';
+import { X, Send, Bot, PanelRightClose, Trash2, Sparkles, User, BarChart2, Table as TableIcon, ExternalLink } from 'lucide-react';
 import { MOCK_TOOLS } from '../constants';
 
 interface Message {
@@ -73,7 +73,7 @@ const RichText: React.FC<{ text: string }> = ({ text }) => {
                href={url} 
                target="_blank" 
                rel="noopener noreferrer" 
-               className="text-brand-600 hover:text-brand-800 hover:underline font-medium inline-flex items-center"
+               className="text-brand-600 hover:text-brand-800 hover:underline font-bold inline-flex items-center bg-brand-50 px-1 rounded mx-0.5"
              >
                {part}
                <ExternalLink size={10} className="ml-0.5" />
@@ -241,7 +241,7 @@ const CanvasMessageRenderer: React.FC<{ text: string }> = ({ text }) => {
     <div className="space-y-2">
       {blocks.map((block, idx) => {
         if (block.type === 'chart') {
-          return <RenderChart key={idx} data={block.content} title="Data Visualization" />;
+          return <RenderChart key={idx} data={block.content as ChartDataPoint[]} title="Data Visualization" />;
         }
         if (block.type === 'table') {
           return <RenderTable key={idx} content={block.content as string} />;
@@ -271,9 +271,6 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose }) => {
   const [sidebarWidth, setSidebarWidth] = useState(450);
   const [isResizing, setIsResizing] = useState(false);
   
-  // Initialize GenAI
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
   useEffect(() => {
     if (isOpen && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -318,6 +315,9 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose }) => {
     setIsLoading(true);
 
     try {
+      // Safe Initialization
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
       const toolsContext = MOCK_TOOLS.map(t => 
         `- ${t.name} (Category: ${t.categories.join(', ')}, Price: ${t.pricing}, Popularity: ${t.popular ? 'High' : 'Average'}, URL: ${t.websiteUrl})`
       ).join('\n');
@@ -332,6 +332,8 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose }) => {
       2. **Tables**: When comparing tools or listing items with attributes, MUST use Markdown tables.
       3. **Links**: When listing tools, ALWAYS include a clickable link in Markdown format: [Link Label](URL).
          Example table row: | Tool Name | Category | [Visit Website](URL) |
+         Example list item: - **Tool Name**: [Visit Website](URL) - Description.
+         IMPORTANT: Ensure the URL is valid from the context provided.
       4. **Charts**: When discussing popularity, pricing distributions, or comparisons that involve numbers, you MUST output a JSON block tagged as 'chart'.
          Format:
          \`\`\`chart
