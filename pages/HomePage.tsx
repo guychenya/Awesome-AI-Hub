@@ -67,7 +67,14 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-full bg-slate-50">
-      <Hero searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+      <Hero 
+        searchQuery={searchQuery} 
+        setSearchQuery={setSearchQuery}
+        selectedCategories={selectedCategories}
+        toggleCategory={toggleCategory}
+        selectedPricing={selectedPricing}
+        togglePricing={togglePricing}
+      />
 
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8">

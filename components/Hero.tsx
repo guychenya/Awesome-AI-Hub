@@ -1,16 +1,81 @@
-import React from 'react';
-import { Search, Sparkles } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Search, Sparkles, X, Tag, DollarSign } from 'lucide-react';
+import { CATEGORIES } from '../constants';
+import { PricingModel } from '../types';
 
 interface HeroProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  selectedCategories: string[];
+  toggleCategory: (id: string) => void;
+  selectedPricing: PricingModel[];
+  togglePricing: (pricing: PricingModel) => void;
 }
 
-const Hero: React.FC<HeroProps> = ({ searchQuery, setSearchQuery }) => {
+const Hero: React.FC<HeroProps> = ({ 
+  searchQuery, 
+  setSearchQuery,
+  selectedCategories,
+  toggleCategory,
+  selectedPricing,
+  togglePricing
+}) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const [suggestions, setSuggestions] = useState<Array<{type: 'category' | 'pricing', id: string, label: string}>>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Logic to handle backspace deleting chips
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && searchQuery === '') {
+      // Remove last filter if input is empty
+      if (selectedPricing.length > 0) {
+        togglePricing(selectedPricing[selectedPricing.length - 1]);
+      } else if (selectedCategories.length > 0) {
+        toggleCategory(selectedCategories[selectedCategories.length - 1]);
+      }
+    }
+  };
+
+  // Logic to show suggestions based on typing
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSuggestions([]);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    
+    // Find matching categories
+    const catMatches = CATEGORIES
+      .filter(c => !selectedCategories.includes(c.id))
+      .filter(c => c.name.toLowerCase().includes(query))
+      .map(c => ({ type: 'category' as const, id: c.id, label: c.name }))
+      .slice(0, 3);
+
+    // Find matching pricing
+    const priceMatches = Object.values(PricingModel)
+      .filter(p => !selectedPricing.includes(p))
+      .filter(p => p.toLowerCase().includes(query))
+      .map(p => ({ type: 'pricing' as const, id: p, label: p }))
+      .slice(0, 2);
+
+    setSuggestions([...catMatches, ...priceMatches]);
+  }, [searchQuery, selectedCategories, selectedPricing]);
+
+  const addFilter = (item: {type: 'category' | 'pricing', id: string, label: string}) => {
+    if (item.type === 'category') {
+      toggleCategory(item.id);
+    } else {
+      togglePricing(item.id as PricingModel);
+    }
+    setSearchQuery(''); // Clear input after adding tag
+    inputRef.current?.focus();
+  };
+
   return (
-    <div className="relative bg-white border-b border-slate-200 overflow-hidden flex-shrink-0">
+    <div className="relative bg-white border-b border-slate-200 overflow-visible flex-shrink-0 z-20">
       {/* Abstract Background pattern */}
-      <div className="absolute inset-0 bg-slate-50 pointer-events-none">
+      <div className="absolute inset-0 bg-slate-50 pointer-events-none overflow-hidden">
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-brand-200 rounded-full blur-3xl opacity-30 animate-pulse"></div>
         <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-blue-200 rounded-full blur-3xl opacity-30"></div>
       </div>
@@ -30,20 +95,94 @@ const Hero: React.FC<HeroProps> = ({ searchQuery, setSearchQuery }) => {
           Navigate the expanding universe of AI tools. Streamlined, intelligent, and designed to help you find the perfect tool for your workflow.
         </p>
 
-        <div className="max-w-xl mx-auto relative group">
-          <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-slate-400 group-focus-within:text-brand-500 transition-colors" />
+        <div className="max-w-2xl mx-auto relative group text-left">
+          <div 
+            className={`
+              relative flex flex-wrap items-center bg-white border rounded-[2rem] shadow-xl transition-all duration-300
+              ${isFocused ? 'ring-4 ring-brand-500/10 border-brand-500' : 'border-slate-200 shadow-slate-200/50'}
+            `}
+            onClick={() => inputRef.current?.focus()}
+          >
+             {/* Left Icon */}
+            <div className="pl-5 pr-3 py-4 text-slate-400">
+              <Search className={`h-5 w-5 transition-colors ${isFocused ? 'text-brand-500' : ''}`} />
+            </div>
+
+            {/* Chips Container */}
+            <div className="flex flex-wrap gap-2 items-center py-2">
+               {/* Category Chips */}
+               {selectedCategories.map(catId => {
+                 const cat = CATEGORIES.find(c => c.id === catId);
+                 return (
+                   <span key={catId} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 animate-in zoom-in-50 duration-200">
+                     <Tag size={10} className="mr-1.5 opacity-50" />
+                     {cat?.name}
+                     <button 
+                       onClick={(e) => { e.stopPropagation(); toggleCategory(catId); }}
+                       className="ml-1.5 hover:text-rose-500 rounded-full"
+                     >
+                       <X size={12} />
+                     </button>
+                   </span>
+                 );
+               })}
+
+               {/* Pricing Chips */}
+               {selectedPricing.map(price => (
+                 <span key={price} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-brand-50 text-brand-700 border border-brand-100 animate-in zoom-in-50 duration-200">
+                   <DollarSign size={10} className="mr-1 opacity-50" />
+                   {price}
+                   <button 
+                     onClick={(e) => { e.stopPropagation(); togglePricing(price); }}
+                     className="ml-1.5 hover:text-rose-500 rounded-full"
+                   >
+                     <X size={12} />
+                   </button>
+                 </span>
+               ))}
+               
+               {/* Actual Input */}
+               <input
+                ref={inputRef}
+                type="text"
+                className="flex-grow min-w-[150px] bg-transparent border-none outline-none text-base text-slate-900 placeholder:text-slate-400 py-2 focus:ring-0"
+                placeholder={selectedCategories.length === 0 && selectedPricing.length === 0 ? "Search AI tools or type filter..." : ""}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setTimeout(() => setIsFocused(false), 200)} // Delay to allow click on suggestions
+                onKeyDown={handleKeyDown}
+              />
+            </div>
+
+            {/* Suggestions Dropdown */}
+            {isFocused && suggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-in slide-in-from-top-2 z-50">
+                 <div className="px-4 py-2 bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                   Quick Filters
+                 </div>
+                 {suggestions.map((item) => (
+                   <button
+                     key={`${item.type}-${item.id}`}
+                     className="w-full text-left px-4 py-3 hover:bg-brand-50 flex items-center justify-between group transition-colors"
+                     onClick={() => addFilter(item)}
+                   >
+                     <div className="flex items-center">
+                        {item.type === 'category' ? <Tag size={14} className="mr-3 text-slate-400 group-hover:text-brand-500" /> : <DollarSign size={14} className="mr-3 text-slate-400 group-hover:text-brand-500" />}
+                        <span className="text-sm font-medium text-slate-700 group-hover:text-brand-900">{item.label}</span>
+                     </div>
+                     <span className="text-[10px] font-semibold text-slate-300 group-hover:text-brand-400 uppercase">
+                       Add {item.type}
+                     </span>
+                   </button>
+                 ))}
+              </div>
+            )}
           </div>
-          <input
-            type="text"
-            className="block w-full pl-14 pr-6 py-4 bg-white border border-slate-200 rounded-full text-slate-900 shadow-xl shadow-slate-200/50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all placeholder:text-slate-400 text-base"
-            placeholder="Search AI tools (e.g., 'text generation', 'video editor')"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          
           {/* Visual indicator for AI Chat */}
           <div className="absolute -bottom-8 right-0 text-xs text-slate-400 hidden md:block">
-            Want smart recommendations? Toggle the <span className="font-semibold text-brand-600">AI Assistant</span> in the header.
+            PowerSearch active. Type 'Video' or 'Free' to quick-add filters.
           </div>
         </div>
       </div>
