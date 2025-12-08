@@ -9,15 +9,14 @@ const ToolCard: React.FC<{ tool: Tool }> = ({ tool }) => {
 
   const getPricingColor = (pricing: PricingModel) => {
     switch (pricing) {
-      case PricingModel.Free: return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      case PricingModel.Freemium: return 'bg-amber-100 text-amber-700 border-amber-200';
-      case PricingModel.Paid: return 'bg-rose-100 text-rose-700 border-rose-200';
-      case PricingModel.FreeTrial: return 'bg-blue-100 text-blue-700 border-blue-200';
-      default: return 'bg-slate-100 text-slate-700 border-slate-200';
+      case PricingModel.Free: return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+      case PricingModel.Freemium: return 'bg-amber-100 text-amber-800 border-amber-200';
+      case PricingModel.Paid: return 'bg-rose-100 text-rose-800 border-rose-200';
+      case PricingModel.FreeTrial: return 'bg-blue-100 text-blue-800 border-blue-200';
+      default: return 'bg-slate-100 text-slate-800 border-slate-200';
     }
   };
 
-  // Helper to determine parent domain fallback for common cases
   const getFallbackUrl = (currentUrl: string): string | null => {
     if (currentUrl.includes('adobe')) return 'https://logo.clearbit.com/adobe.com';
     if (currentUrl.includes('google')) return 'https://logo.clearbit.com/google.com';
@@ -42,15 +41,9 @@ const ToolCard: React.FC<{ tool: Tool }> = ({ tool }) => {
   };
 
   const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase();
+    return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
   };
 
-  // Generate a consistent pastel color based on name length
   const getGradientClass = (name: string) => {
     const gradients = [
       'from-blue-400 to-indigo-500',
@@ -64,55 +57,58 @@ const ToolCard: React.FC<{ tool: Tool }> = ({ tool }) => {
   };
 
   return (
-    <div className="group bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-xl hover:shadow-brand-500/10 hover:border-brand-200 transition-all duration-300 flex flex-col h-full">
-      <div className="h-32 bg-slate-50 border-b border-slate-100 relative flex items-center justify-center p-6">
+    <div className="group bg-white rounded-3xl border border-slate-200 overflow-hidden hover:shadow-2xl hover:shadow-brand-500/10 hover:border-brand-200 transition-all duration-300 flex flex-col h-full relative">
+      <div className="h-36 bg-slate-50/50 border-b border-slate-100 relative flex items-center justify-center p-8">
+         {/* Background Decoration */}
+         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
+         
          {!imageError ? (
            <img 
             src={tool.imageUrl} 
             alt={`${tool.name} logo`} 
-            className="w-full h-full object-contain filter group-hover:scale-110 transition-transform duration-300"
+            className="w-full h-full object-contain filter group-hover:scale-110 transition-transform duration-500 relative z-10"
             loading="lazy"
             onError={handleImageError}
            />
          ) : (
-           <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${getGradientClass(tool.name)} flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform`}>
+           <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${getGradientClass(tool.name)} flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform relative z-10`}>
              <span className="text-white font-display font-bold text-xl tracking-wider">
                {getInitials(tool.name)}
              </span>
            </div>
          )}
-         <div className="absolute top-3 right-3">
-            <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getPricingColor(tool.pricing)}`}>
+         <div className="absolute top-4 right-4 z-20">
+            <span className={`px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider border ${getPricingColor(tool.pricing)}`}>
               {tool.pricing}
             </span>
          </div>
       </div>
       
-      <div className="p-5 flex flex-col flex-grow">
-        <div className="flex justify-between items-start mb-2">
+      <div className="p-6 flex flex-col flex-grow">
+        <div className="mb-2">
             <h3 className="font-display font-bold text-lg text-slate-900 group-hover:text-brand-600 transition-colors">
               {tool.name}
             </h3>
         </div>
         
-        <p className="text-sm text-slate-500 line-clamp-2 mb-4 flex-grow">
+        <p className="text-sm text-slate-500 line-clamp-3 mb-5 flex-grow leading-relaxed">
           {tool.description}
         </p>
 
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div className="flex flex-wrap gap-2">
             {tool.categories.slice(0, 2).map((cat, i) => (
-              <span key={i} className="inline-flex items-center text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded border border-slate-100">
-                <Tag size={10} className="mr-1" />
+              <span key={i} className="inline-flex items-center text-[10px] font-semibold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100 group-hover:border-brand-100 group-hover:bg-brand-50/50 transition-colors">
+                <Tag size={10} className="mr-1.5 opacity-70" />
                 {cat}
               </span>
             ))}
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100">
+          <div className="grid grid-cols-2 gap-3 pt-5 border-t border-slate-100">
             <Link 
               to={`/tool/${tool.id}`}
-              className="flex items-center justify-center py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-full hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95"
+              className="flex items-center justify-center py-2.5 text-xs font-bold uppercase tracking-wide text-slate-600 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95"
             >
               Details
             </Link>
@@ -120,9 +116,9 @@ const ToolCard: React.FC<{ tool: Tool }> = ({ tool }) => {
               href={tool.websiteUrl} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="flex items-center justify-center py-2 text-sm font-semibold text-white bg-slate-900 rounded-full hover:bg-brand-600 hover:shadow-md hover:shadow-brand-500/20 transition-all active:scale-95"
+              className="flex items-center justify-center py-2.5 text-xs font-bold uppercase tracking-wide text-white bg-slate-900 rounded-2xl hover:bg-brand-600 hover:shadow-lg hover:shadow-brand-500/20 transition-all active:scale-95"
             >
-              Visit <ExternalLink size={14} className="ml-1.5" />
+              Visit <ExternalLink size={12} className="ml-1.5" />
             </a>
           </div>
         </div>
