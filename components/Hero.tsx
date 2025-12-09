@@ -72,6 +72,8 @@ const Hero: React.FC<HeroProps> = ({
     inputRef.current?.focus();
   };
 
+  const hasFilters = selectedCategories.length > 0 || selectedPricing.length > 0;
+
   return (
     <div className="relative bg-white border-b border-slate-200 overflow-visible flex-shrink-0 z-20">
       {/* Abstract Background pattern */}
@@ -98,23 +100,23 @@ const Hero: React.FC<HeroProps> = ({
         <div className="max-w-2xl mx-auto relative group text-left">
           <div 
             className={`
-              relative flex flex-wrap items-center bg-white border rounded-[2rem] shadow-xl transition-all duration-300
+              relative flex flex-wrap items-center bg-white border rounded-[2rem] shadow-xl transition-all duration-300 px-2
               ${isFocused ? 'ring-4 ring-brand-500/10 border-brand-500' : 'border-slate-200 shadow-slate-200/50'}
             `}
             onClick={() => inputRef.current?.focus()}
           >
              {/* Left Icon */}
-            <div className="pl-5 pr-3 py-4 text-slate-400">
+            <div className="pl-3 pr-2 py-4 text-slate-400 flex-shrink-0">
               <Search className={`h-5 w-5 transition-colors ${isFocused ? 'text-brand-500' : ''}`} />
             </div>
 
             {/* Chips Container */}
-            <div className="flex flex-wrap gap-2 items-center py-2">
+            <div className="flex flex-wrap gap-2 items-center py-2 flex-grow">
                {/* Category Chips */}
                {selectedCategories.map(catId => {
                  const cat = CATEGORIES.find(c => c.id === catId);
                  return (
-                   <span key={catId} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 animate-in zoom-in-50 duration-200">
+                   <span key={catId} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 animate-in zoom-in-50 duration-200 whitespace-nowrap">
                      <Tag size={10} className="mr-1.5 opacity-50" />
                      {cat?.name}
                      <button 
@@ -129,7 +131,7 @@ const Hero: React.FC<HeroProps> = ({
 
                {/* Pricing Chips */}
                {selectedPricing.map(price => (
-                 <span key={price} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-brand-50 text-brand-700 border border-brand-100 animate-in zoom-in-50 duration-200">
+                 <span key={price} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-brand-50 text-brand-700 border border-brand-100 animate-in zoom-in-50 duration-200 whitespace-nowrap">
                    <DollarSign size={10} className="mr-1 opacity-50" />
                    {price}
                    <button 
@@ -146,7 +148,7 @@ const Hero: React.FC<HeroProps> = ({
                 ref={inputRef}
                 type="text"
                 className="flex-grow min-w-[150px] bg-transparent border-none outline-none text-base text-slate-900 placeholder:text-slate-400 py-2 focus:ring-0"
-                placeholder={selectedCategories.length === 0 && selectedPricing.length === 0 ? "Search AI tools or type filter..." : ""}
+                placeholder={hasFilters ? "Add more..." : "Search AI tools or type filter..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setIsFocused(true)}

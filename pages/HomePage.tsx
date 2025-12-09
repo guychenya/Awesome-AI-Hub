@@ -4,7 +4,7 @@ import ToolCard from '../components/ToolCard';
 import FilterSidebar from '../components/FilterSidebar';
 import { getTools } from '../services/toolService';
 import { PricingModel, SortOption } from '../types';
-import { ChevronDown, SlidersHorizontal, X } from 'lucide-react';
+import { ChevronDown, SlidersHorizontal, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 const TOOLS_PER_PAGE = 12;
 
@@ -16,6 +16,7 @@ const HomePage: React.FC = () => {
   const [popularOnly, setPopularOnly] = useState(false);
   const [visibleCount, setVisibleCount] = useState(TOOLS_PER_PAGE);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Derive all filtered tools
   const allFilteredTools = useMemo(() => {
@@ -77,7 +78,7 @@ const HomePage: React.FC = () => {
       />
 
       <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col lg:flex-row gap-8 transition-all">
           
           {/* Mobile Filter Toggle */}
           <div className="lg:hidden mb-4">
@@ -91,7 +92,9 @@ const HomePage: React.FC = () => {
           </div>
 
           {/* Left Sidebar (Desktop) */}
-          <aside className="hidden lg:block w-72 flex-shrink-0 sticky top-24 h-[calc(100vh-8rem)] overflow-y-auto pr-2 custom-scrollbar">
+          <aside 
+            className={`hidden lg:block flex-shrink-0 sticky top-24 h-[calc(100vh-8rem)] overflow-y-auto pr-2 custom-scrollbar transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-72 opacity-100 translate-x-0' : 'w-0 opacity-0 -translate-x-4 overflow-hidden'}`}
+          >
             <FilterSidebar 
               selectedCategories={selectedCategories}
               toggleCategory={toggleCategory}
@@ -132,11 +135,23 @@ const HomePage: React.FC = () => {
           )}
 
           {/* Main Grid Content */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
              <div className="mb-6 flex items-center justify-between">
-                <p className="text-slate-500 text-sm">
-                  Showing <span className="font-bold text-slate-900">{displayedTools.length}</span> of {allFilteredTools.length} tools
-                </p>
+                <div className="flex items-center gap-4">
+                   {/* Sidebar Toggle Button */}
+                   <button 
+                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                     className="hidden lg:flex items-center justify-center p-2 rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+                     title={isSidebarOpen ? "Collapse Filters" : "Expand Filters"}
+                   >
+                     {isSidebarOpen ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
+                   </button>
+
+                   <p className="text-slate-500 text-sm">
+                     Showing <span className="font-bold text-slate-900">{displayedTools.length}</span> of {allFilteredTools.length} tools
+                   </p>
+                </div>
+
                 {/* Active Filter Pills (Optional summary) */}
                 {(selectedCategories.length > 0) && (
                   <div className="hidden sm:flex gap-2">
@@ -154,7 +169,7 @@ const HomePage: React.FC = () => {
 
             {displayedTools.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className={`grid grid-cols-1 gap-6 transition-all duration-300 ${isSidebarOpen ? 'md:grid-cols-2 xl:grid-cols-3' : 'md:grid-cols-3 xl:grid-cols-4'}`}>
                   {displayedTools.map(tool => (
                     <ToolCard key={tool.id} tool={tool} />
                   ))}
