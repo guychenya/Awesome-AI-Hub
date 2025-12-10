@@ -8,7 +8,7 @@ const Footer: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row justify-between items-center text-sm text-slate-500">
           <div className="flex flex-col items-center md:items-start mb-4 md:mb-0 space-y-2">
-             <p className="font-semibold text-slate-700">© 2025 Awesome AI Hub.</p>
+             <p className="font-semibold text-slate-700">© 2025 SeekCompass.</p>
              <p className="flex items-center text-xs text-slate-400">
                Adapted from the <a href="https://github.com/tankvn/awesome-ai-tools" target="_blank" rel="noreferrer" className="text-slate-500 hover:text-brand-600 mx-1 font-medium transition-colors">awesome-ai-tools</a> repository.
              </p>

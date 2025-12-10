@@ -364,7 +364,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose }) => {
         `- ${t.name} (Category: ${t.categories.join(', ')}, Price: ${t.pricing}, Popularity: ${t.popular ? 'High' : 'Average'}, URL: ${t.websiteUrl})`
       ).join('\n');
 
-      const systemInstruction = `You are an advanced AI assistant for "Awesome AI Tools Hub". 
+      const systemInstruction = `You are an advanced AI assistant for "SeekCompass". 
       
       DATA CONTEXT:
       ${toolsContext}

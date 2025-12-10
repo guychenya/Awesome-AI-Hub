@@ -22,7 +22,7 @@ const DataSourcesPage: React.FC = () => {
           <div className="prose prose-slate max-w-none text-slate-600">
             <h3>Primary Source</h3>
             <p>
-              The core dataset for Awesome AI Hub is adapted from the open-source community effort hosted on GitHub:
+              The core dataset for SeekCompass is adapted from the open-source community effort hosted on GitHub:
             </p>
             
             <a 

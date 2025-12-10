@@ -24,7 +24,7 @@ const PrivacyPage: React.FC = () => {
 
             <h3>1. Introduction</h3>
             <p>
-              Welcome to Awesome AI Hub ("we," "our," or "us"). We respect your privacy and are committed to protecting it through our compliance with this policy. 
+              Welcome to SeekCompass ("we," "our," or "us"). We respect your privacy and are committed to protecting it through our compliance with this policy. 
               This policy describes the types of information we may collect from you or that you may provide when you visit our website.
             </p>
 

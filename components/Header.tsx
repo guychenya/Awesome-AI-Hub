@@ -38,7 +38,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleChat, isChatOpen }) => {
               </svg>
             </div>
             <span className="font-display font-bold text-2xl tracking-tight text-slate-900 hidden sm:block">
-                Awesome AI Hub
+                SeekCompass
             </span>
             </Link>
 

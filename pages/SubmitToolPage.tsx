@@ -39,7 +39,7 @@ const SubmitToolPage: React.FC = () => {
           </div>
           <h2 className="text-3xl font-bold text-slate-900">Submission Received!</h2>
           <p className="text-slate-600">
-            Thank you for contributing to the Awesome AI Hub. Your tool <strong>{formData.name}</strong> has been submitted for review. 
+            Thank you for contributing to SeekCompass. Your tool <strong>{formData.name}</strong> has been submitted for review. 
             We verify every submission to ensure quality and safety.
           </p>
           <div className="pt-4">
