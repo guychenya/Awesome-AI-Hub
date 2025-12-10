@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, UploadCloud, CheckCircle, Info } from 'lucide-react';
+import { ArrowLeft, UploadCloud, CheckCircle, Info, Sparkles, X, Loader2 } from 'lucide-react';
+import { GoogleGenAI } from "@google/genai";
 import { CATEGORIES } from '../constants';
 import { PricingModel } from '../types';
 
@@ -16,6 +17,11 @@ const SubmitToolPage: React.FC = () => {
     tags: ''
   });
 
+  // AI Generation State
+  const [isGeneratingLogo, setIsGeneratingLogo] = useState(false);
+  const [generatedLogo, setGeneratedLogo] = useState<string | null>(null);
+  const [genError, setGenError] = useState<string | null>(null);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Simulate submission
@@ -28,6 +34,58 @@ const SubmitToolPage: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleGenerateLogo = async () => {
+    if (!formData.name || !formData.description) {
+        setGenError("Please enter a Tool Name and Description first.");
+        return;
+    }
+
+    setIsGeneratingLogo(true);
+    setGenError(null);
+
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-image',
+            contents: {
+                parts: [{ 
+                    text: `Design a high-quality, modern, minimalist, vector-style app icon/logo for an AI tool named "${formData.name}". 
+                    Tool Description: "${formData.description}". 
+                    Style: Flat design, solid colors, professional, white background. 
+                    Ensure the design is centered and looks like a startup logo.` 
+                }]
+            }
+        });
+
+        const candidate = response.candidates?.[0];
+        let foundImage = false;
+        if (candidate?.content?.parts) {
+            for (const part of candidate.content.parts) {
+                if (part.inlineData) {
+                    setGeneratedLogo(`data:${part.inlineData.mimeType};base64,${part.inlineData.data}`);
+                    setFormData(prev => ({ ...prev, logoUrl: '' })); // Clear manual URL if user had one
+                    foundImage = true;
+                    break;
+                }
+            }
+        }
+        
+        if (!foundImage) {
+            setGenError("The model didn't return an image. Please try again.");
+        }
+
+    } catch (e: any) {
+        console.error("Logo generation failed", e);
+        setGenError("Failed to generate logo. Ensure API Key is valid.");
+    } finally {
+        setIsGeneratingLogo(false);
+    }
+  };
+
+  const handleRemoveGenerated = () => {
+      setGeneratedLogo(null);
   };
 
   if (submitted) {
@@ -47,7 +105,11 @@ const SubmitToolPage: React.FC = () => {
               Return to Discovery
             </Link>
             <button 
-              onClick={() => { setSubmitted(false); setFormData({ name: '', url: '', description: '', category: CATEGORIES[0].id, pricing: PricingModel.Freemium, logoUrl: '', tags: '' }); }}
+              onClick={() => { 
+                setSubmitted(false); 
+                setFormData({ name: '', url: '', description: '', category: CATEGORIES[0].id, pricing: PricingModel.Freemium, logoUrl: '', tags: '' }); 
+                setGeneratedLogo(null);
+              }}
               className="block w-full mt-4 text-sm text-slate-500 hover:text-brand-600"
             >
               Submit another tool
@@ -67,14 +129,17 @@ const SubmitToolPage: React.FC = () => {
         </Link>
 
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="bg-brand-600 p-8 text-white">
-            <div className="flex items-center gap-3 mb-4">
+          <div className="bg-brand-600 p-8 text-white relative overflow-hidden">
+            {/* Abstract Background pattern */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
+            
+            <div className="flex items-center gap-3 mb-4 relative z-10">
                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
                  <UploadCloud size={24} />
                </div>
                <h1 className="text-2xl font-bold font-display">Submit a Tool</h1>
             </div>
-            <p className="text-brand-100">
+            <p className="text-brand-100 relative z-10">
               Found an amazing AI tool that's missing? Help us grow the database by filling out the details below.
             </p>
           </div>
@@ -128,16 +193,63 @@ const SubmitToolPage: React.FC = () => {
 
               <div>
                 <label htmlFor="logoUrl" className="block text-sm font-medium text-slate-700 mb-1">Logo URL (Optional)</label>
-                <input 
-                  type="url" 
-                  id="logoUrl" 
-                  name="logoUrl" 
-                  className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
-                  placeholder="https://.../logo.png"
-                  value={formData.logoUrl}
-                  onChange={handleChange}
-                />
-                <p className="text-xs text-slate-500 mt-1">Direct link to a square PNG/JPG image.</p>
+                
+                {!generatedLogo ? (
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <input 
+                            type="url" 
+                            id="logoUrl" 
+                            name="logoUrl" 
+                            className="flex-1 px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
+                            placeholder="https://.../logo.png"
+                            value={formData.logoUrl}
+                            onChange={handleChange}
+                            disabled={isGeneratingLogo}
+                        />
+                        <button
+                            type="button"
+                            onClick={handleGenerateLogo}
+                            disabled={isGeneratingLogo || (!formData.name && !formData.description)}
+                            className="flex items-center justify-center px-4 py-2 bg-gradient-to-r from-brand-600 to-indigo-600 text-white rounded-lg font-bold text-sm hover:shadow-lg hover:shadow-brand-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 whitespace-nowrap"
+                            title={(!formData.name || !formData.description) ? "Enter Name and Description first" : "Generate Logo"}
+                        >
+                            {isGeneratingLogo ? <Loader2 size={16} className="animate-spin mr-2"/> : <Sparkles size={16} className="mr-2" />}
+                            {isGeneratingLogo ? 'Designing...' : 'Generate with AI'}
+                        </button>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-4 p-3 border border-brand-200 bg-brand-50 rounded-xl animate-in fade-in zoom-in-50">
+                        <div className="w-16 h-16 rounded-lg overflow-hidden border border-brand-100 bg-white shadow-sm flex-shrink-0 relative">
+                             {/* Transparent checkerboard background simulation */}
+                             <div className="absolute inset-0 z-0 opacity-10 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:8px_8px]"></div>
+                             <img src={generatedLogo} alt="Generated Logo" className="w-full h-full object-contain relative z-10" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-brand-900">AI Generated Logo</p>
+                            <p className="text-xs text-brand-700 truncate">Created by Gemini 2.5</p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleRemoveGenerated}
+                            className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                            title="Remove and use URL"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
+                )}
+                
+                {genError && (
+                    <p className="text-xs text-rose-500 mt-2 flex items-center font-medium">
+                        <Info size={12} className="mr-1" /> {genError}
+                    </p>
+                )}
+                
+                {!generatedLogo && (
+                    <p className="text-xs text-slate-500 mt-1">
+                        Paste a direct link to a PNG/JPG, or let our AI design a custom logo for you.
+                    </p>
+                )}
               </div>
             </div>
 
