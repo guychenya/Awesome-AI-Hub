@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, UploadCloud, CheckCircle, Info, Sparkles, X, Loader2, Mail, ExternalLink, Wand2 } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { CATEGORIES } from '../constants';
 import { PricingModel, Tool } from '../types';
 import { saveToolLocally } from '../services/toolService';
@@ -105,38 +105,63 @@ Please review and add to the directory.
 
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const categoriesList = CATEGORIES.map(c => `${c.id} (${c.name})`).join(', ');
+        const categoriesList = CATEGORIES.map(c => `'${c.id}' (${c.name})`).join(', ');
         const pricingList = Object.values(PricingModel).join(', ');
 
         const prompt = `
-            Act as a data extraction assistant.
-            Extract tool information from the text below into a valid JSON object.
-            
-            Target Fields:
-            - name: Tool name (string)
-            - url: Website URL (string, if available)
-            - description: Brief description (string, max 300 chars)
-            - category: Best match ID from this list: [${categoriesList}]. Default to 'business'.
-            - pricing: Best match from this list: [${pricingList}]. Default to 'Freemium'.
-            - tags: comma-separated keywords (string)
+          You are an expert data extraction AI. Your task is to analyze the provided text and extract specific information about a software tool, then format it as a clean JSON object.
 
-            Text to process:
-            """${pasteContent}"""
-            
-            Return ONLY the valid JSON object. Do not include markdown formatting.
+          **Instructions:**
+          1. Read the "Text to process" carefully.
+          2. Extract the following fields:
+              - "name": The official name of the tool.
+              - "url": The primary website URL.
+              - "description": A concise, one-sentence summary of what the tool does.
+              - "category": The single best category ID from this list: [${categoriesList}].
+              - "pricing": The single best pricing model from this list: [${pricingList}].
+              - "tags": A comma-separated string of 3-5 relevant keywords.
+          3. Return ONLY the JSON object. Do not include any other text, explanations, or markdown formatting like \`\`\`json.
+
+          **Example Output Format:**
+          {
+            "name": "Example AI",
+            "url": "https://example.com",
+            "description": "An AI-powered tool for creating beautiful presentations.",
+            "category": "business",
+            "pricing": "Freemium",
+            "tags": "presentations, slides, design"
+          }
+
+          **Text to process:**
+          """
+          ${pasteContent}
+          """
         `;
+        
+        const responseSchema = {
+            type: Type.OBJECT,
+            properties: {
+                name: { type: Type.STRING },
+                url: { type: Type.STRING },
+                description: { type: Type.STRING },
+                category: { type: Type.STRING },
+                pricing: { type: Type.STRING },
+                tags: { type: Type.STRING },
+            }
+        };
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
-            config: { responseMimeType: 'application/json' }
+            config: { 
+                responseMimeType: 'application/json',
+                responseSchema: responseSchema
+            }
         });
 
         const text = response.text;
         if (text) {
-            // Safe parse (clean potential markdown just in case)
-            const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
-            const data = JSON.parse(cleanJson);
+            const data = JSON.parse(text);
 
             setFormData(prev => ({
                 ...prev,
