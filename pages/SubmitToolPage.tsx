@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, UploadCloud, CheckCircle, Info, Sparkles, X, Loader2, Mail, ExternalLink } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
+import { ArrowLeft, UploadCloud, CheckCircle, Info, Sparkles, X, Loader2, Mail, ExternalLink, Bot } from 'lucide-react';
+import { GoogleGenAI, Type } from "@google/genai";
 import { CATEGORIES } from '../constants';
 import { PricingModel } from '../types';
 
@@ -16,6 +16,12 @@ const SubmitToolPage: React.FC = () => {
     logoUrl: '',
     tags: ''
   });
+
+  // Free Text Parsing State
+  const [freeText, setFreeText] = useState('');
+  const [isParsing, setIsParsing] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
+
 
   // AI Generation State
   const [isGeneratingLogo, setIsGeneratingLogo] = useState(false);
@@ -61,6 +67,84 @@ Please review and add to the directory.
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleParseText = async () => {
+    if (!freeText.trim()) {
+        setParseError("Please paste some text to parse.");
+        return;
+    }
+    setIsParsing(true);
+    setParseError(null);
+
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+        const validCategories = CATEGORIES.map(c => c.name).join(', ');
+        const validPricing = Object.values(PricingModel).join(', ');
+
+        const prompt = `
+          You are an expert data extraction assistant. Your task is to parse the user's text and extract information about an AI tool.
+          
+          Valid Categories: ${validCategories}
+          Valid Pricing Models: ${validPricing}
+
+          Analyze the following text and return a JSON object that matches the specified schema. 
+          For the 'category' field, choose the *best single match* from the valid categories list.
+          For the 'pricing' field, choose the *best single match* from the valid pricing models list. If no pricing is mentioned, default to 'Freemium'.
+
+          User Text:
+          ---
+          ${freeText}
+          ---
+        `;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        name: { type: Type.STRING },
+                        url: { type: Type.STRING },
+                        description: { type: Type.STRING },
+                        category: { type: Type.STRING },
+                        pricing: { type: Type.STRING },
+                        tags: { type: Type.STRING, description: "Comma-separated keywords" }
+                    },
+                    required: ["name", "url", "description", "category", "pricing"]
+                }
+            }
+        });
+
+        const parsedData = JSON.parse(response.text);
+
+        // Find the category ID from the returned name
+        const foundCategory = CATEGORIES.find(c => c.name.toLowerCase() === parsedData.category?.toLowerCase());
+        
+        // Find the correct pricing model enum value
+        const foundPricing = Object.values(PricingModel).find(p => p.toLowerCase() === parsedData.pricing?.toLowerCase());
+
+        setFormData({
+            name: parsedData.name || '',
+            url: parsedData.url || '',
+            description: parsedData.description || '',
+            category: foundCategory?.id || CATEGORIES[0].id,
+            pricing: (foundPricing || PricingModel.Freemium) as PricingModel,
+            tags: parsedData.tags || '',
+            logoUrl: '' // Reset logo URL
+        });
+
+        setFreeText(''); // Clear textarea after successful parse
+
+    } catch (e: any) {
+        console.error("Parsing failed", e);
+        setParseError("Failed to parse text. Please check the format or try again.");
+    } finally {
+        setIsParsing(false);
+    }
   };
 
   const handleGenerateLogo = async () => {
@@ -183,9 +267,44 @@ Please review and add to the directory.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-8 space-y-6">
+          <form onSubmit={handleSubmit} className="p-8 space-y-8">
+            {/* AI Parsing Section */}
+            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-brand-500/20 flex-shrink-0">
+                  <Bot size={16} />
+                </div>
+                <div>
+                    <h3 className="text-base font-bold text-slate-900">Parse with AI (Beta)</h3>
+                    <p className="text-xs text-slate-500">Paste tool info below and let AI fill the form.</p>
+                </div>
+              </div>
+              <textarea
+                value={freeText}
+                onChange={(e) => setFreeText(e.target.value)}
+                rows={4}
+                className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all resize-none"
+                placeholder={`* Tool Name: MindSpark AI\n* Category: Text & Writing\n* Price: Freemium...`}
+              />
+              <button
+                type="button"
+                onClick={handleParseText}
+                disabled={isParsing || !freeText.trim()}
+                className="w-full flex items-center justify-center px-4 py-2.5 bg-slate-900 text-white rounded-lg font-bold text-sm hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 whitespace-nowrap"
+              >
+                {isParsing ? <Loader2 size={16} className="animate-spin mr-2"/> : <Sparkles size={16} className="mr-2" />}
+                {isParsing ? 'Extracting...' : 'Parse & Fill Form'}
+              </button>
+              {parseError && (
+                 <p className="text-xs text-rose-500 mt-2 flex items-center font-medium">
+                    <Info size={12} className="mr-1" /> {parseError}
+                 </p>
+              )}
+            </div>
+
+
             <div className="space-y-4">
-              <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">Tool Information</h3>
+              <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">1. Tool Information</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -265,7 +384,7 @@ Please review and add to the directory.
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-brand-900">AI Generated Logo</p>
-                            <p className="text-xs text-brand-700 truncate">Created by Gemini 2.5</p>
+                            <p className="text-xs text-brand-700 truncate">Created by Gemini</p>
                         </div>
                         <button
                             type="button"
@@ -293,7 +412,7 @@ Please review and add to the directory.
             </div>
 
             <div className="space-y-4 pt-4">
-              <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">Classification</h3>
+              <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">2. Classification</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
