@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ToolDetailPage from './pages/ToolDetailPage';
@@ -23,7 +23,7 @@ const ScrollToTop = () => {
   return null;
 };
 
-const App: React.FC = () => {
+const App = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isChatMaximized, setIsChatMaximized] = useState(false);
 
