@@ -13,28 +13,39 @@ const Header: React.FC<HeaderProps> = ({ onToggleChat, isChatOpen }) => {
       <div className="container mx-auto px-6 h-20 flex items-center justify-between">
         <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-3 group mr-10">
-            {/* Custom SVG Logo */}
+            {/* Custom SVG Logo - SeekCompass Premium Design */}
             <div className="relative w-10 h-10 flex items-center justify-center">
-              <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full transform transition-transform group-hover:scale-105 duration-300">
+              <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full transform transition-transform group-hover:rotate-12 duration-700 ease-out">
                 <defs>
-                  <linearGradient id="logoGradient" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stopColor="#6366f1" />
-                    <stop offset="100%" stopColor="#8b5cf6" />
+                  <linearGradient id="premiumGradient" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#6366f1" /> {/* Indigo */}
+                    <stop offset="50%" stopColor="#8b5cf6" /> {/* Violet */}
+                    <stop offset="100%" stopColor="#d946ef" /> {/* Fuchsia */}
                   </linearGradient>
-                  <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
                     <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                    <feComposite in="coloredBlur" in2="SourceAlpha" operator="in" result="glow"/>
                     <feMerge>
-                      <feMergeNode in="coloredBlur"/>
+                      <feMergeNode in="glow"/>
                       <feMergeNode in="SourceGraphic"/>
                     </feMerge>
                   </filter>
                 </defs>
-                <path d="M20 4C11.1634 4 4 11.1634 4 20C4 28.8366 11.1634 36 20 36C28.8366 36 36 28.8366 36 20C36 11.1634 28.8366 4 20 4ZM20 10C21.6569 10 23 11.3431 23 13C23 14.6569 21.6569 16 20 16C18.3431 16 17 14.6569 17 13C17 11.3431 18.3431 10 20 10ZM12 21C10.3431 21 9 19.6569 9 18C9 16.3431 10.3431 15 12 15C13.6569 15 15 16.3431 15 18C15 19.6569 13.6569 21 12 21ZM28 21C26.3431 21 25 19.6569 25 18C25 16.3431 26.3431 15 28 15C29.6569 15 31 16.3431 31 18C31 19.6569 29.6569 21 28 21ZM20 30C18.3431 30 17 28.6569 17 27C17 25.3431 18.3431 24 20 24C21.6569 24 23 25.3431 23 27C23 28.6569 21.6569 30 20 30Z" fill="url(#logoGradient)" className="opacity-20"/>
-                <circle cx="20" cy="13" r="3" fill="url(#logoGradient)" />
-                <circle cx="12" cy="18" r="3" fill="url(#logoGradient)" />
-                <circle cx="28" cy="18" r="3" fill="url(#logoGradient)" />
-                <circle cx="20" cy="27" r="3" fill="url(#logoGradient)" />
-                <path d="M20 13L12 18M20 13L28 18M12 18L20 27M28 18L20 27" stroke="url(#logoGradient)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                
+                {/* Abstract Navigation Rings */}
+                <circle cx="24" cy="24" r="20" stroke="url(#premiumGradient)" strokeWidth="1.5" strokeOpacity="0.15" />
+                <path d="M24 4V8M24 40V44M4 24H8M40 24H44" stroke="url(#premiumGradient)" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.3" />
+
+                {/* Main Compass Star */}
+                <path 
+                  d="M24 6L29 19L42 24L29 29L24 42L19 29L6 24L19 19L24 6Z" 
+                  fill="url(#premiumGradient)" 
+                  filter="url(#softGlow)"
+                  className="drop-shadow-sm"
+                />
+                
+                {/* Inner White Core */}
+                <path d="M24 16L26 22L32 24L26 26L24 32L22 26L16 24L22 22L24 16Z" fill="white" fillOpacity="0.95" />
               </svg>
             </div>
             <span className="font-display font-bold text-2xl tracking-tight text-slate-900 hidden sm:block">
