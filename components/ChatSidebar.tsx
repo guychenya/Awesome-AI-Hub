@@ -447,8 +447,10 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, isMaximized,
         ${isOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
         ${isMaximized ? 'fixed inset-0 z-40' : 'relative md:transform-none md:shadow-none'}
       `}
-      style={{ 
-        paddingTop: isMaximized ? '0' : '4rem',
+      style={{
+        // When maximized, it becomes a fixed overlay and needs its own padding to clear the 5rem (h-20) header.
+        // When not maximized, it sits inside a container that already has padding, so it needs NO top padding.
+        paddingTop: isMaximized ? '5rem' : '0', 
         width: isMaximized ? '100%' : (isOpen ? (window.innerWidth >= 768 ? `${sidebarWidth}px` : '100%') : '0px'),
         transitionProperty: isResizing ? 'none' : 'width, transform, opacity'
       }} 
@@ -464,7 +466,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, isMaximized,
       )}
 
       {/* Header */}
-      <div className={`flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white/80 backdrop-blur-sm z-10 flex-shrink-0 ${isMaximized ? 'pt-6' : ''}`}>
+      <div className={`flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white/80 backdrop-blur-sm z-10 flex-shrink-0`}>
         <div className="flex items-center space-x-3">
            <div className="relative">
              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
