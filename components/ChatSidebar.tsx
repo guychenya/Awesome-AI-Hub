@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { GoogleGenAI } from "@google/genai";
-import { X, Send, Bot, PanelRightClose, Trash2, Sparkles, User, BarChart2, Table as TableIcon, ExternalLink, Settings, Save, Key, Eye, EyeOff, AlertCircle, ChevronDown } from 'lucide-react';
+import { X, Send, Bot, PanelRightClose, Trash2, Sparkles, User, BarChart2, Table as TableIcon, ExternalLink, Settings, Save, Key, Eye, EyeOff, AlertCircle, ChevronDown, Maximize, Minimize } from 'lucide-react';
 import { MOCK_TOOLS } from '../constants';
 
 interface Message {
@@ -12,6 +12,8 @@ interface Message {
 interface ChatSidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  isMaximized: boolean;
+  onToggleMaximize: () => void;
 }
 
 interface ChartDataPoint {
@@ -266,7 +268,7 @@ const SUGGESTIONS = [
   "Show me marketing tools pricing"
 ];
 
-const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose }) => {
+const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, isMaximized, onToggleMaximize }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -440,26 +442,29 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose }) => {
   return (
     <aside 
       className={`
-        fixed inset-y-0 right-0 z-40 bg-white border-l border-slate-200 shadow-2xl transform transition-all ease-in-out flex flex-col
-        md:relative md:transform-none md:shadow-none
-        ${isOpen ? 'translate-x-0 opacity-100' : 'translate-x-full md:w-0 md:opacity-0 md:overflow-hidden'}
+        bg-white border-l border-slate-200 shadow-2xl flex flex-col
+        transition-all duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
+        ${isMaximized ? 'fixed inset-0 z-40' : 'relative md:transform-none md:shadow-none'}
       `}
       style={{ 
-        paddingTop: '4rem',
-        width: isOpen ? (window.innerWidth >= 768 ? `${sidebarWidth}px` : '100%') : '0px',
+        paddingTop: isMaximized ? '0' : '4rem',
+        width: isMaximized ? '100%' : (isOpen ? (window.innerWidth >= 768 ? `${sidebarWidth}px` : '100%') : '0px'),
         transitionProperty: isResizing ? 'none' : 'width, transform, opacity'
       }} 
     >
       {/* Drag Handle (Desktop Only) */}
-      <div 
-        className="hidden md:flex absolute left-0 top-0 bottom-0 w-1.5 hover:w-2 bg-transparent hover:bg-brand-500/10 cursor-col-resize z-50 items-center justify-center group transition-all"
-        onMouseDown={startResizing}
-      >
-         <div className="h-8 w-1 rounded-full bg-slate-300 group-hover:bg-brand-400 transition-colors"></div>
-      </div>
+      {!isMaximized && (
+        <div 
+          className="hidden md:flex absolute left-0 top-0 bottom-0 w-1.5 hover:w-2 bg-transparent hover:bg-brand-500/10 cursor-col-resize z-50 items-center justify-center group transition-all"
+          onMouseDown={startResizing}
+        >
+           <div className="h-8 w-1 rounded-full bg-slate-300 group-hover:bg-brand-400 transition-colors"></div>
+        </div>
+      )}
 
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white/80 backdrop-blur-sm z-10 flex-shrink-0">
+      <div className={`flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white/80 backdrop-blur-sm z-10 flex-shrink-0 ${isMaximized ? 'pt-6' : ''}`}>
         <div className="flex items-center space-x-3">
            <div className="relative">
              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
@@ -492,6 +497,13 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose }) => {
              title="Settings & Keys"
            >
              <Settings size={18} />
+           </button>
+           <button 
+             onClick={onToggleMaximize}
+             className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors hidden md:block"
+             title={isMaximized ? "Restore" : "Maximize"}
+           >
+             {isMaximized ? <Minimize size={18} /> : <Maximize size={18} />}
            </button>
            <button 
             onClick={onClose}

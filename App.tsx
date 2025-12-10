@@ -25,6 +25,7 @@ const ScrollToTop = () => {
 
 const App: React.FC = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isChatMaximized, setIsChatMaximized] = useState(false);
 
   return (
     <HashRouter>
@@ -35,11 +36,11 @@ const App: React.FC = () => {
           onToggleChat={() => setIsChatOpen(!isChatOpen)} 
         />
         
-        <div className="flex flex-1 pt-16 overflow-hidden relative">
+        <div className="flex flex-1 pt-16 md:pt-20 overflow-hidden relative">
           {/* Main Content Area */}
           <main 
             id="main-content"
-            className="flex-1 overflow-y-auto scroll-smooth transition-all duration-300 ease-in-out"
+            className={`flex-1 overflow-y-auto scroll-smooth transition-all duration-500 ease-in-out ${isChatMaximized ? 'flex-none w-0 opacity-0 p-0 overflow-hidden' : ''}`}
           >
             <div className="min-h-full flex flex-col">
               <Routes>
@@ -57,7 +58,9 @@ const App: React.FC = () => {
           {/* AI Sidebar - Integrated Split View */}
           <ChatSidebar 
             isOpen={isChatOpen} 
-            onClose={() => setIsChatOpen(false)} 
+            onClose={() => setIsChatOpen(false)}
+            isMaximized={isChatMaximized}
+            onToggleMaximize={() => setIsChatMaximized(!isChatMaximized)}
           />
         </div>
       </div>
