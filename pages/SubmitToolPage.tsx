@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, UploadCloud, CheckCircle, Info, Sparkles, X, Loader2 } from 'lucide-react';
+import { ArrowLeft, UploadCloud, CheckCircle, Info, Sparkles, X, Loader2, Mail, ExternalLink } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { CATEGORIES } from '../constants';
 import { PricingModel } from '../types';
@@ -24,11 +24,38 @@ const SubmitToolPage: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate submission
+    
+    // 1. Construct Email Body for Admin
+    const subject = encodeURIComponent(`New Tool Submission: ${formData.name}`);
+    const body = encodeURIComponent(`
+Hi SeekCompass Admin,
+
+I would like to submit a new tool for review.
+
+--- TOOL DETAILS ---
+Name: ${formData.name}
+Website: ${formData.url}
+Category: ${CATEGORIES.find(c => c.id === formData.category)?.name || formData.category}
+Pricing: ${formData.pricing}
+Tags: ${formData.tags}
+
+Description:
+${formData.description}
+
+Logo: ${generatedLogo ? 'AI Generated (See Attached or Context)' : (formData.logoUrl || 'None provided')}
+
+---------------------
+Please review and add to the directory.
+    `);
+
+    // 2. Open Email Client
+    window.location.href = `mailto:admin@seekcompass.com?subject=${subject}&body=${body}`;
+
+    // 3. Show Success State
     setTimeout(() => {
       setSubmitted(true);
       window.scrollTo(0, 0);
-    }, 800);
+    }, 500);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -92,16 +119,28 @@ const SubmitToolPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
         <div className="bg-white rounded-3xl p-8 md:p-12 shadow-xl border border-slate-100 max-w-lg w-full text-center space-y-6 animate-in zoom-in duration-300">
-          <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
-            <CheckCircle size={40} />
+          <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
+            <Mail size={40} />
           </div>
-          <h2 className="text-3xl font-bold text-slate-900">Submission Received!</h2>
-          <p className="text-slate-600">
-            Thank you for contributing to SeekCompass. Your tool <strong>{formData.name}</strong> has been submitted for review. 
-            We verify every submission to ensure quality and safety.
-          </p>
-          <div className="pt-4">
-            <Link to="/" className="inline-flex items-center justify-center px-6 py-3 bg-slate-900 text-white font-medium rounded-xl hover:bg-slate-800 transition-all">
+          
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold text-slate-900 font-display">Draft Created!</h2>
+            <p className="text-slate-600 text-lg">
+              Your submission draft has been opened in your email client.
+            </p>
+          </div>
+
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-left space-y-3">
+             <h4 className="font-bold text-slate-900 text-sm uppercase tracking-wide">What happens next?</h4>
+             <ol className="text-sm text-slate-600 space-y-2 list-decimal list-inside">
+               <li><span className="font-semibold">Send Email:</span> Hit "Send" in your email app to notify our admins.</li>
+               <li><span className="font-semibold">Review:</span> We verify the tool for safety and quality (24-48h).</li>
+               <li><span className="font-semibold">Live:</span> Once approved, <strong>{formData.name}</strong> will appear in the directory.</li>
+             </ol>
+          </div>
+
+          <div className="pt-4 space-y-3">
+            <Link to="/" className="inline-flex items-center justify-center w-full px-6 py-3.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20">
               Return to Discovery
             </Link>
             <button 
@@ -110,7 +149,7 @@ const SubmitToolPage: React.FC = () => {
                 setFormData({ name: '', url: '', description: '', category: CATEGORIES[0].id, pricing: PricingModel.Freemium, logoUrl: '', tags: '' }); 
                 setGeneratedLogo(null);
               }}
-              className="block w-full mt-4 text-sm text-slate-500 hover:text-brand-600"
+              className="block w-full text-sm text-slate-500 hover:text-brand-600 font-medium py-2"
             >
               Submit another tool
             </button>
@@ -304,16 +343,17 @@ const SubmitToolPage: React.FC = () => {
             <div className="bg-blue-50 p-4 rounded-xl flex items-start gap-3 text-sm text-blue-800">
                <Info size={18} className="flex-shrink-0 mt-0.5" />
                <p>
-                 <strong>Disclaimer:</strong> AI tools change rapidly. Please verify that the pricing and features you submit are accurate as of today. We review submissions but mistakes happen.
+                 <strong>Process:</strong> Submitting will open your default email client with a draft addressed to our review team.
                </p>
             </div>
 
             <div className="pt-4 flex justify-end">
               <button 
                 type="submit"
-                className="px-8 py-3 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 shadow-lg shadow-brand-500/30 transform active:scale-95 transition-all"
+                className="px-8 py-3 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 shadow-lg shadow-brand-500/30 transform active:scale-95 transition-all flex items-center"
               >
-                Submit Tool
+                <Mail size={18} className="mr-2" />
+                Submit via Email
               </button>
             </div>
           </form>
