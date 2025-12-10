@@ -8,8 +8,24 @@ interface FilterOptions {
   sort: SortOption;
 }
 
+const STORAGE_KEY = 'seekcompass_user_tools';
+
+// Helper to get local tools
+const getLocalTools = (): Tool[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (e) {
+    console.error("Failed to load local tools", e);
+    return [];
+  }
+};
+
 export const getTools = (options: FilterOptions): Tool[] => {
-  let filtered = MOCK_TOOLS.filter(tool => {
+  const localTools = getLocalTools();
+  const allTools = [...localTools, ...MOCK_TOOLS];
+
+  let filtered = allTools.filter(tool => {
     // Search Filter
     const query = options.searchQuery.toLowerCase();
     const matchesSearch = 
@@ -21,11 +37,7 @@ export const getTools = (options: FilterOptions): Tool[] => {
 
     // Category Filter
     if (options.categories.length > 0) {
-      // Check if tool has at least one of the selected categories
-      // Note: In real app, IDs should be mapped carefully. 
-      // For this mock, we are checking if the category Name matches.
-      // We need to map Category IDs to Names for comparison or adjust data structure.
-      // Let's resolve ID to Name first.
+      // Resolve ID to Name for comparison
       const selectedCategoryNames = CATEGORIES
         .filter(c => options.categories.includes(c.id))
         .map(c => c.name);
@@ -65,17 +77,34 @@ export const getTools = (options: FilterOptions): Tool[] => {
 };
 
 export const getToolById = (id: string): Tool | undefined => {
+  const localTools = getLocalTools();
+  const tool = localTools.find(t => t.id === id);
+  if (tool) return tool;
+  
   return MOCK_TOOLS.find(t => t.id === id);
 };
 
 export const getRelatedTools = (tool: Tool): Tool[] => {
-  return MOCK_TOOLS
+  const localTools = getLocalTools();
+  const allTools = [...localTools, ...MOCK_TOOLS];
+
+  return allTools
     .filter(t => t.id !== tool.id && t.categories.some(c => tool.categories.includes(c)))
     .slice(0, 3);
 };
 
 export const getRecentTools = (): Tool[] => {
-  return [...MOCK_TOOLS]
+  const localTools = getLocalTools();
+  const allTools = [...localTools, ...MOCK_TOOLS];
+
+  return allTools
     .sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime())
     .slice(0, 4);
+};
+
+// Helper to save a new tool
+export const saveToolLocally = (tool: Tool) => {
+  const current = getLocalTools();
+  const updated = [tool, ...current];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 };

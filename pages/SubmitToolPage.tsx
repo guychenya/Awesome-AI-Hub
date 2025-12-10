@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, UploadCloud, CheckCircle, Info, Sparkles, X, Loader2, Mail, ExternalLink, Bot } from 'lucide-react';
-import { GoogleGenAI, Type } from "@google/genai";
+import { ArrowLeft, UploadCloud, CheckCircle, Info, Sparkles, X, Loader2, Mail, ExternalLink } from 'lucide-react';
+import { GoogleGenAI } from "@google/genai";
 import { CATEGORIES } from '../constants';
-import { PricingModel } from '../types';
+import { PricingModel, Tool } from '../types';
+import { saveToolLocally } from '../services/toolService';
 
 const SubmitToolPage: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
@@ -17,12 +18,6 @@ const SubmitToolPage: React.FC = () => {
     tags: ''
   });
 
-  // Free Text Parsing State
-  const [freeText, setFreeText] = useState('');
-  const [isParsing, setIsParsing] = useState(false);
-  const [parseError, setParseError] = useState<string | null>(null);
-
-
   // AI Generation State
   const [isGeneratingLogo, setIsGeneratingLogo] = useState(false);
   const [generatedLogo, setGeneratedLogo] = useState<string | null>(null);
@@ -31,7 +26,36 @@ const SubmitToolPage: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 1. Construct Email Body for Admin
+    // 1. Create Tool Object for Local Storage
+    const categoryName = CATEGORIES.find(c => c.id === formData.category)?.name || 'General';
+    const featuresList = formData.tags 
+      ? formData.tags.split(',').map(t => t.trim()).filter(t => t.length > 0) 
+      : ['AI Powered', 'Productivity'];
+
+    // Use AI generated logo, or user provided URL, or fallback to Clearbit
+    let finalImageUrl = generatedLogo;
+    if (!finalImageUrl) {
+        finalImageUrl = formData.logoUrl || `https://logo.clearbit.com/${new URL(formData.url).hostname}`;
+    }
+
+    const newTool: Tool = {
+      id: `local-${Date.now()}`,
+      name: formData.name,
+      description: formData.description,
+      longDescription: formData.description, // Simplified for MVP
+      websiteUrl: formData.url,
+      imageUrl: finalImageUrl,
+      pricing: formData.pricing,
+      categories: [categoryName],
+      features: featuresList,
+      addedAt: new Date().toISOString(),
+      popular: false
+    };
+
+    // 2. Save Locally (Instant Update)
+    saveToolLocally(newTool);
+
+    // 3. Construct Email Body for Admin
     const subject = encodeURIComponent(`New Tool Submission: ${formData.name}`);
     const body = encodeURIComponent(`
 Hi SeekCompass Admin,
@@ -41,23 +65,23 @@ I would like to submit a new tool for review.
 --- TOOL DETAILS ---
 Name: ${formData.name}
 Website: ${formData.url}
-Category: ${CATEGORIES.find(c => c.id === formData.category)?.name || formData.category}
+Category: ${categoryName}
 Pricing: ${formData.pricing}
 Tags: ${formData.tags}
 
 Description:
 ${formData.description}
 
-Logo: ${generatedLogo ? 'AI Generated (See Attached or Context)' : (formData.logoUrl || 'None provided')}
+Logo: ${generatedLogo ? 'AI Generated (Base64 data included in app)' : (formData.logoUrl || 'None provided')}
 
 ---------------------
 Please review and add to the directory.
     `);
 
-    // 2. Open Email Client
+    // 4. Open Email Client
     window.location.href = `mailto:admin@seekcompass.com?subject=${subject}&body=${body}`;
 
-    // 3. Show Success State
+    // 5. Show Success State
     setTimeout(() => {
       setSubmitted(true);
       window.scrollTo(0, 0);
@@ -67,84 +91,6 @@ Please review and add to the directory.
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleParseText = async () => {
-    if (!freeText.trim()) {
-        setParseError("Please paste some text to parse.");
-        return;
-    }
-    setIsParsing(true);
-    setParseError(null);
-
-    try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-        const validCategories = CATEGORIES.map(c => c.name).join(', ');
-        const validPricing = Object.values(PricingModel).join(', ');
-
-        const prompt = `
-          You are an expert data extraction assistant. Your task is to parse the user's text and extract information about an AI tool.
-          
-          Valid Categories: ${validCategories}
-          Valid Pricing Models: ${validPricing}
-
-          Analyze the following text and return a JSON object that matches the specified schema. 
-          For the 'category' field, choose the *best single match* from the valid categories list.
-          For the 'pricing' field, choose the *best single match* from the valid pricing models list. If no pricing is mentioned, default to 'Freemium'.
-
-          User Text:
-          ---
-          ${freeText}
-          ---
-        `;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        name: { type: Type.STRING },
-                        url: { type: Type.STRING },
-                        description: { type: Type.STRING },
-                        category: { type: Type.STRING },
-                        pricing: { type: Type.STRING },
-                        tags: { type: Type.STRING, description: "Comma-separated keywords" }
-                    },
-                    required: ["name", "url", "description", "category", "pricing"]
-                }
-            }
-        });
-
-        const parsedData = JSON.parse(response.text);
-
-        // Find the category ID from the returned name
-        const foundCategory = CATEGORIES.find(c => c.name.toLowerCase() === parsedData.category?.toLowerCase());
-        
-        // Find the correct pricing model enum value
-        const foundPricing = Object.values(PricingModel).find(p => p.toLowerCase() === parsedData.pricing?.toLowerCase());
-
-        setFormData({
-            name: parsedData.name || '',
-            url: parsedData.url || '',
-            description: parsedData.description || '',
-            category: foundCategory?.id || CATEGORIES[0].id,
-            pricing: (foundPricing || PricingModel.Freemium) as PricingModel,
-            tags: parsedData.tags || '',
-            logoUrl: '' // Reset logo URL
-        });
-
-        setFreeText(''); // Clear textarea after successful parse
-
-    } catch (e: any) {
-        console.error("Parsing failed", e);
-        setParseError("Failed to parse text. Please check the format or try again.");
-    } finally {
-        setIsParsing(false);
-    }
   };
 
   const handleGenerateLogo = async () => {
@@ -204,28 +150,33 @@ Please review and add to the directory.
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
         <div className="bg-white rounded-3xl p-8 md:p-12 shadow-xl border border-slate-100 max-w-lg w-full text-center space-y-6 animate-in zoom-in duration-300">
           <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
-            <Mail size={40} />
+            <CheckCircle size={40} />
           </div>
           
           <div className="space-y-2">
-            <h2 className="text-3xl font-bold text-slate-900 font-display">Draft Created!</h2>
+            <h2 className="text-3xl font-bold text-slate-900 font-display">Tool Added!</h2>
             <p className="text-slate-600 text-lg">
-              Your submission draft has been opened in your email client.
+              We've added <strong>{formData.name}</strong> to your local browser view instantly.
             </p>
           </div>
 
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-left space-y-3">
-             <h4 className="font-bold text-slate-900 text-sm uppercase tracking-wide">What happens next?</h4>
-             <ol className="text-sm text-slate-600 space-y-2 list-decimal list-inside">
-               <li><span className="font-semibold">Send Email:</span> Hit "Send" in your email app to notify our admins.</li>
-               <li><span className="font-semibold">Review:</span> We verify the tool for safety and quality (24-48h).</li>
-               <li><span className="font-semibold">Live:</span> Once approved, <strong>{formData.name}</strong> will appear in the directory.</li>
-             </ol>
+             <h4 className="font-bold text-slate-900 text-sm uppercase tracking-wide">Status Update</h4>
+             <ul className="text-sm text-slate-600 space-y-2">
+               <li className="flex items-start gap-2">
+                 <CheckCircle size={16} className="text-emerald-500 mt-0.5" />
+                 <span><strong>Added Locally:</strong> You can see and use this card immediately on this device.</span>
+               </li>
+               <li className="flex items-start gap-2">
+                 <Mail size={16} className="text-blue-500 mt-0.5" />
+                 <span><strong>Email Drafted:</strong> Please send the generated email to notify admins for public listing.</span>
+               </li>
+             </ul>
           </div>
 
           <div className="pt-4 space-y-3">
             <Link to="/" className="inline-flex items-center justify-center w-full px-6 py-3.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20">
-              Return to Discovery
+              View My Tool in Directory
             </Link>
             <button 
               onClick={() => { 
@@ -263,48 +214,13 @@ Please review and add to the directory.
                <h1 className="text-2xl font-bold font-display">Submit a Tool</h1>
             </div>
             <p className="text-brand-100 relative z-10">
-              Found an amazing AI tool that's missing? Help us grow the database by filling out the details below.
+              Found an amazing AI tool that's missing? Add it to your personal view and notify us to add it for everyone.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-8 space-y-8">
-            {/* AI Parsing Section */}
-            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-brand-500/20 flex-shrink-0">
-                  <Bot size={16} />
-                </div>
-                <div>
-                    <h3 className="text-base font-bold text-slate-900">Parse with AI (Beta)</h3>
-                    <p className="text-xs text-slate-500">Paste tool info below and let AI fill the form.</p>
-                </div>
-              </div>
-              <textarea
-                value={freeText}
-                onChange={(e) => setFreeText(e.target.value)}
-                rows={4}
-                className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all resize-none"
-                placeholder={`* Tool Name: MindSpark AI\n* Category: Text & Writing\n* Price: Freemium...`}
-              />
-              <button
-                type="button"
-                onClick={handleParseText}
-                disabled={isParsing || !freeText.trim()}
-                className="w-full flex items-center justify-center px-4 py-2.5 bg-slate-900 text-white rounded-lg font-bold text-sm hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 whitespace-nowrap"
-              >
-                {isParsing ? <Loader2 size={16} className="animate-spin mr-2"/> : <Sparkles size={16} className="mr-2" />}
-                {isParsing ? 'Extracting...' : 'Parse & Fill Form'}
-              </button>
-              {parseError && (
-                 <p className="text-xs text-rose-500 mt-2 flex items-center font-medium">
-                    <Info size={12} className="mr-1" /> {parseError}
-                 </p>
-              )}
-            </div>
-
-
+          <form onSubmit={handleSubmit} className="p-8 space-y-6">
             <div className="space-y-4">
-              <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">1. Tool Information</h3>
+              <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">Tool Information</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -384,7 +300,7 @@ Please review and add to the directory.
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-brand-900">AI Generated Logo</p>
-                            <p className="text-xs text-brand-700 truncate">Created by Gemini</p>
+                            <p className="text-xs text-brand-700 truncate">Created by Gemini 2.5</p>
                         </div>
                         <button
                             type="button"
@@ -412,7 +328,7 @@ Please review and add to the directory.
             </div>
 
             <div className="space-y-4 pt-4">
-              <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">2. Classification</h3>
+              <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">Classification</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -462,7 +378,7 @@ Please review and add to the directory.
             <div className="bg-blue-50 p-4 rounded-xl flex items-start gap-3 text-sm text-blue-800">
                <Info size={18} className="flex-shrink-0 mt-0.5" />
                <p>
-                 <strong>Process:</strong> Submitting will open your default email client with a draft addressed to our review team.
+                 <strong>Process:</strong> Your tool will be added to this device immediately. A draft email will also be created to notify admins for public listing.
                </p>
             </div>
 
@@ -471,8 +387,8 @@ Please review and add to the directory.
                 type="submit"
                 className="px-8 py-3 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 shadow-lg shadow-brand-500/30 transform active:scale-95 transition-all flex items-center"
               >
-                <Mail size={18} className="mr-2" />
-                Submit via Email
+                <CheckCircle size={18} className="mr-2" />
+                Add & Notify
               </button>
             </div>
           </form>

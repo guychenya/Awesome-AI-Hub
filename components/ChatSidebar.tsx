@@ -367,7 +367,6 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose }) => {
       const systemInstruction = `You are an advanced AI assistant for "SeekCompass". 
       
       DATA CONTEXT:
-      You have access to a static list of AI tools. Here is the data:
       ${toolsContext}
       
       FORMATTING RULES (CANVAS MODE):
@@ -375,13 +374,18 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose }) => {
       2. **Tables**: When comparing tools or listing items with attributes, MUST use Markdown tables.
       3. **Links**: When listing tools, ALWAYS include a clickable link in Markdown format: [Link Label](URL).
       4. **Charts**: When discussing popularity, pricing distributions, or comparisons that involve numbers, you MUST output a JSON block tagged as 'chart'.
-         Format: \`\`\`chart\n[{"label": "Tool A", "value": 85}]\n\`\`\`
+         Format:
+         \`\`\`chart
+         [
+           {"label": "Tool A", "value": 85},
+           {"label": "Tool B", "value": 60}
+         ]
+         \`\`\`
       
       BEHAVIOR:
       - If asked for "best X", provide a Table with Links.
       - If asked for "comparison" or "popularity", provide a Chart.
-      - Always be helpful and concise.
-      - **CRITICAL RULE: You CANNOT add, edit, or delete tools from the database. This is a static application. If a user asks to add a tool, you MUST politely refuse and direct them to the submission page using this exact Markdown link: [Submit a Tool page](#/submit).**`;
+      - Always be helpful and concise.`;
 
       const response = await ai.models.generateContent({
         model: modelConfig.modelId || 'gemini-2.5-flash',
