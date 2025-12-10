@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, Check, Share2, Tag, Calendar, Globe } from 'lucide-react';
 import { getToolById, getRelatedTools } from '../services/toolService';
@@ -7,9 +7,39 @@ import ToolCard from '../components/ToolCard';
 const ToolDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const tool = id ? getToolById(id) : undefined;
+  const [isCopied, setIsCopied] = useState(false);
   
   // Use related tools or empty array if tool not found
   const relatedTools = tool ? getRelatedTools(tool) : [];
+
+  const handleShare = async () => {
+    if (!tool) return;
+
+    const shareData = {
+      title: tool.name,
+      text: `Check out ${tool.name} on SeekCompass: ${tool.description}`,
+      url: window.location.href,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (error) {
+        console.error("Sharing failed:", error);
+      }
+    } else {
+      // Fallback to clipboard for browsers that don't support Web Share API
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+      } catch (error) {
+        console.error("Failed to copy URL:", error);
+        alert("Could not copy URL to clipboard.");
+      }
+    }
+  };
+
 
   if (!tool) {
     return (
@@ -58,8 +88,12 @@ const ToolDetailPage: React.FC = () => {
                   </div>
 
                   <div className="flex gap-3">
-                    <button className="p-2.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 hover:text-brand-600 transition-colors" title="Share">
-                      <Share2 size={20} />
+                    <button 
+                      onClick={handleShare}
+                      className={`p-2.5 rounded-lg border transition-colors duration-200 ${isCopied ? 'bg-emerald-50 text-emerald-600 border-emerald-300' : 'border-slate-300 text-slate-600 hover:bg-slate-50 hover:text-brand-600'}`}
+                      title="Share"
+                    >
+                      {isCopied ? <Check size={20} /> : <Share2 size={20} />}
                     </button>
                     <a 
                       href={tool.websiteUrl} 
