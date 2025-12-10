@@ -8,6 +8,28 @@ import { ChevronDown, SlidersHorizontal, X, PanelLeftClose, PanelLeftOpen, Layou
 
 const TOOLS_PER_PAGE = 12;
 
+// Helper component for Table Icon with fallback
+const TableToolIcon = ({ tool }: { tool: any }) => {
+  const [error, setError] = useState(false);
+
+  if (error) {
+    return (
+      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-100 to-indigo-100 text-brand-700 flex items-center justify-center text-[10px] font-bold shrink-0 border border-brand-200">
+        {tool.name.substring(0, 2).toUpperCase()}
+      </div>
+    );
+  }
+
+  return (
+    <img 
+      src={tool.imageUrl} 
+      alt="" 
+      className="w-8 h-8 object-contain rounded-lg bg-white border border-slate-100 shrink-0"
+      onError={() => setError(true)}
+    />
+  );
+};
+
 const HomePage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -205,7 +227,7 @@ const HomePage: React.FC = () => {
                       <table className="w-full text-left text-sm">
                         <thead className="bg-slate-50 border-b border-slate-200">
                           <tr>
-                            <th className="px-6 py-4 font-semibold text-slate-700">Tool Name</th>
+                            <th className="px-6 py-4 font-semibold text-slate-700 w-1/3">Tool Name</th>
                             <th className="px-6 py-4 font-semibold text-slate-700">Categories</th>
                             <th className="px-6 py-4 font-semibold text-slate-700">Pricing</th>
                             <th className="px-6 py-4 font-semibold text-slate-700">Link</th>
@@ -214,9 +236,11 @@ const HomePage: React.FC = () => {
                         <tbody className="divide-y divide-slate-100">
                            {displayedTools.map(tool => (
                              <tr key={tool.id} className="hover:bg-slate-50 transition-colors group">
-                               <td className="px-6 py-4 font-medium text-slate-900 flex items-center gap-3">
-                                 <img src={tool.imageUrl} alt="" className="w-6 h-6 object-contain rounded" />
-                                 {tool.name}
+                               <td className="px-6 py-4">
+                                 <div className="flex items-center gap-3 font-medium text-slate-900">
+                                   <TableToolIcon tool={tool} />
+                                   {tool.name}
+                                 </div>
                                </td>
                                <td className="px-6 py-4 text-slate-600">
                                  <div className="flex flex-wrap gap-1">
