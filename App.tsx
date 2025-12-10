@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ToolDetailPage from './pages/ToolDetailPage';
@@ -13,7 +13,7 @@ import ChatSidebar from './components/ChatSidebar';
 const ScrollToTop = () => {
   const { pathname } = useLocation();
 
-  React.useEffect(() => {
+  useEffect(() => {
     const mainContainer = document.getElementById('main-content');
     if (mainContainer) {
       mainContainer.scrollTo(0, 0);
@@ -27,13 +27,32 @@ const App: React.FC = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isChatMaximized, setIsChatMaximized] = useState(false);
 
+  // Close handler that respects the maximized state
+  const handleCloseChat = () => {
+    if (isChatMaximized) {
+        setIsChatMaximized(false);
+        // Small delay to allow transition before closing
+        setTimeout(() => setIsChatOpen(false), 300);
+    } else {
+        setIsChatOpen(false);
+    }
+  };
+
+  const handleToggleChat = () => {
+      if (isChatOpen) {
+          handleCloseChat();
+      } else {
+          setIsChatOpen(true);
+      }
+  };
+
   return (
     <HashRouter>
       <ScrollToTop />
       <div className="flex flex-col h-screen overflow-hidden bg-slate-50">
         <Header 
           isChatOpen={isChatOpen} 
-          onToggleChat={() => setIsChatOpen(!isChatOpen)} 
+          onToggleChat={handleToggleChat} 
         />
         
         <div className="flex flex-1 pt-16 md:pt-20 overflow-hidden relative">
@@ -58,7 +77,7 @@ const App: React.FC = () => {
           {/* AI Sidebar - Integrated Split View */}
           <ChatSidebar 
             isOpen={isChatOpen} 
-            onClose={() => setIsChatOpen(false)}
+            onClose={handleCloseChat}
             isMaximized={isChatMaximized}
             onToggleMaximize={() => setIsChatMaximized(!isChatMaximized)}
           />

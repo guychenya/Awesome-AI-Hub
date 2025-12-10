@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { X, Send, Bot, PanelRightClose, Trash2, Sparkles, User, BarChart2, Table as TableIcon, ExternalLink, Settings, Save, Key, Eye, EyeOff, AlertCircle, ChevronDown, Maximize, Minimize, Image as ImageIcon, Download } from 'lucide-react';
+import { X, Send, Bot, PanelRightClose, Trash2, Sparkles, User, BarChart2, Table as TableIcon, ExternalLink, Settings, Save, Key, Eye, EyeOff, AlertCircle, ChevronDown, Maximize, Minimize, Image as ImageIcon, Download, Copy, ThumbsUp, ThumbsDown, Check } from 'lucide-react';
 import { MOCK_TOOLS } from '../constants';
 
 // --- NEW INTERFACES FOR MULTIMODAL CONTENT ---
@@ -326,6 +326,11 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, isMaximized,
 
   const [sidebarWidth, setSidebarWidth] = useState(450);
   const [isResizing, setIsResizing] = useState(false);
+
+  // New states for actions
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [likedMessages, setLikedMessages] = useState<Set<string>>(new Set());
+  const [dislikedMessages, setDislikedMessages] = useState<Set<string>>(new Set());
   
   useEffect(() => {
     const saved = localStorage.getItem('ai_hub_model_config');
@@ -455,6 +460,43 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, isMaximized,
   };
   const clearChat = () => { setMessages([]); };
   const toggleKeyVisibility = (provider: string) => { setShowKey(prev => ({ ...prev, [provider]: !prev[provider] })); };
+
+  // Action Handlers
+  const handleCopy = async (msg: Message) => {
+    try {
+      // Extract only text content and structure for copying
+      const textToCopy = msg.parts
+        .map(p => {
+            if (p.type === 'text') return p.content;
+            if (p.type === 'table') return p.content;
+            if (p.type === 'chart') return JSON.stringify(p.content, null, 2);
+            return '[Image]';
+        })
+        .join('\n\n');
+      
+      await navigator.clipboard.writeText(textToCopy);
+      setCopiedId(msg.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy', err);
+    }
+  };
+
+  const handleLike = (id: string) => {
+    setLikedMessages(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); setDislikedMessages(d => { d.delete(id); return new Set(d); }); }
+      return next;
+    });
+  };
+
+  const handleDislike = (id: string) => {
+    setDislikedMessages(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); setLikedMessages(l => { l.delete(id); return new Set(l); }); }
+      return next;
+    });
+  };
 
   return (
     <aside 
@@ -604,19 +646,47 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, isMaximized,
             </div>
           ) : (
             messages.map((msg) => (
-              <div key={msg.id} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-4 duration-500`}>
+              <div key={msg.id} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-4 duration-500 group relative`}>
                 {msg.role === 'model' && (
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-indigo-600 flex-shrink-0 flex items-center justify-center text-white shadow-md mt-1">
                     <Bot size={16} />
                   </div>
                 )}
-                <div className={`max-w-[85%] sm:max-w-[90%] px-5 py-4 text-sm shadow-sm ${msg.role === 'user' ? 'bg-brand-600 text-white rounded-2xl rounded-br-sm shadow-brand-500/20' : 'bg-white border border-slate-100 text-slate-800 rounded-2xl rounded-bl-sm shadow-slate-200/50'}`}>
+                
+                <div className={`relative max-w-[85%] sm:max-w-[90%] px-5 py-4 text-sm shadow-sm ${msg.role === 'user' ? 'bg-brand-600 text-white rounded-2xl rounded-br-sm shadow-brand-500/20' : 'bg-white border border-slate-100 text-slate-800 rounded-2xl rounded-bl-sm shadow-slate-200/50 pb-8'}`}>
                   {msg.role === 'model' ? (
                     <ModelMessageRenderer parts={msg.parts} />
                   ) : (
                     <p className="leading-relaxed whitespace-pre-wrap">{msg.parts[0].content}</p>
                   )}
+                  
+                  {/* Action Toolbar (Only for model messages) */}
+                  {msg.role === 'model' && (
+                    <div className="absolute bottom-2 right-2 flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <button 
+                        onClick={() => handleCopy(msg)} 
+                        className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-slate-50 rounded-lg transition-colors"
+                        title="Copy Response"
+                      >
+                        {copiedId === msg.id ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                      </button>
+                      <div className="w-px h-3 bg-slate-200 mx-1"></div>
+                      <button 
+                        onClick={() => handleLike(msg.id)}
+                        className={`p-1.5 rounded-lg transition-colors ${likedMessages.has(msg.id) ? 'text-emerald-500 bg-emerald-50' : 'text-slate-400 hover:text-emerald-600 hover:bg-slate-50'}`}
+                      >
+                        <ThumbsUp size={14} />
+                      </button>
+                      <button 
+                        onClick={() => handleDislike(msg.id)}
+                        className={`p-1.5 rounded-lg transition-colors ${dislikedMessages.has(msg.id) ? 'text-rose-500 bg-rose-50' : 'text-slate-400 hover:text-rose-600 hover:bg-slate-50'}`}
+                      >
+                        <ThumbsDown size={14} />
+                      </button>
+                    </div>
+                  )}
                 </div>
+
                 {msg.role === 'user' && (
                   <div className="w-8 h-8 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-slate-500 shadow-inner mt-1">
                     <User size={16} />
