@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, UploadCloud, CheckCircle, Info, Sparkles, X, Loader2, Mail, ExternalLink } from 'lucide-react';
+import { ArrowLeft, UploadCloud, CheckCircle, Info, Sparkles, X, Loader2, Mail, ExternalLink, Wand2 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { CATEGORIES } from '../constants';
 import { PricingModel, Tool } from '../types';
@@ -17,6 +17,11 @@ const SubmitToolPage: React.FC = () => {
     logoUrl: '',
     tags: ''
   });
+
+  // Smart Fill State
+  const [showSmartFill, setShowSmartFill] = useState(false);
+  const [pasteContent, setPasteContent] = useState('');
+  const [isParsing, setIsParsing] = useState(false);
 
   // AI Generation State
   const [isGeneratingLogo, setIsGeneratingLogo] = useState(false);
@@ -91,6 +96,67 @@ Please review and add to the directory.
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSmartFill = async () => {
+    if (!pasteContent.trim()) return;
+    setIsParsing(true);
+    setGenError(null);
+
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const categoriesList = CATEGORIES.map(c => `${c.id} (${c.name})`).join(', ');
+        const pricingList = Object.values(PricingModel).join(', ');
+
+        const prompt = `
+            Act as a data extraction assistant.
+            Extract tool information from the text below into a valid JSON object.
+            
+            Target Fields:
+            - name: Tool name (string)
+            - url: Website URL (string, if available)
+            - description: Brief description (string, max 300 chars)
+            - category: Best match ID from this list: [${categoriesList}]. Default to 'business'.
+            - pricing: Best match from this list: [${pricingList}]. Default to 'Freemium'.
+            - tags: comma-separated keywords (string)
+
+            Text to process:
+            """${pasteContent}"""
+            
+            Return ONLY the valid JSON object. Do not include markdown formatting.
+        `;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: { responseMimeType: 'application/json' }
+        });
+
+        const text = response.text;
+        if (text) {
+            // Safe parse (clean potential markdown just in case)
+            const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+            const data = JSON.parse(cleanJson);
+
+            setFormData(prev => ({
+                ...prev,
+                name: data.name || prev.name,
+                url: data.url || prev.url,
+                description: data.description || prev.description,
+                category: data.category || prev.category,
+                pricing: data.pricing || prev.pricing,
+                tags: data.tags || prev.tags
+            }));
+            
+            setShowSmartFill(false);
+            setPasteContent('');
+        }
+    } catch (e: any) {
+        console.error("Smart Fill Failed", e);
+        setGenError("Failed to parse text info. Please check the content and try again.");
+    } finally {
+        setIsParsing(false);
+    }
   };
 
   const handleGenerateLogo = async () => {
@@ -219,6 +285,43 @@ Please review and add to the directory.
           </div>
 
           <form onSubmit={handleSubmit} className="p-8 space-y-6">
+            
+            {/* Smart Fill Section */}
+            <div className={`rounded-2xl border transition-all duration-300 overflow-hidden ${showSmartFill ? 'bg-indigo-50 border-indigo-200 p-4' : 'bg-slate-50 border-slate-100 p-3 hover:border-indigo-200'}`}>
+               <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowSmartFill(!showSmartFill)}>
+                  <div className="flex items-center gap-2 text-indigo-800">
+                     <Wand2 size={18} className="text-indigo-600" />
+                     <span className="font-bold text-sm">Smart Fill with AI</span>
+                  </div>
+                  <span className="text-xs font-medium text-indigo-600 hover:underline">
+                    {showSmartFill ? 'Cancel' : 'Paste info to auto-fill'}
+                  </span>
+               </div>
+               
+               {showSmartFill && (
+                 <div className="mt-3 space-y-3 animate-in fade-in slide-in-from-top-2">
+                    <textarea 
+                      value={pasteContent}
+                      onChange={(e) => setPasteContent(e.target.value)}
+                      placeholder="Paste text from a newsletter, product hunt page, or website here..."
+                      className="w-full h-32 p-3 text-sm rounded-xl border border-indigo-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none resize-none bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSmartFill}
+                      disabled={isParsing || !pasteContent.trim()}
+                      className="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold shadow-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                    >
+                      {isParsing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                      {isParsing ? 'Analyzing Text...' : 'Magic Auto-Fill'}
+                    </button>
+                    <p className="text-[10px] text-indigo-400 text-center">
+                      AI will analyze the text and extract details automatically.
+                    </p>
+                 </div>
+               )}
+            </div>
+
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">Tool Information</h3>
               
