@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, Check, Share2, Tag, Calendar, Globe } from 'lucide-react';
 import { getToolById, getRelatedTools } from '../services/toolService';
@@ -8,8 +8,13 @@ const ToolDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const tool = id ? getToolById(id) : undefined;
   const [isCopied, setIsCopied] = useState(false);
+  const [imageError, setImageError] = useState(false);
   
-  // Use related tools or empty array if tool not found
+  // Reset image error state if the tool changes
+  useEffect(() => {
+    setImageError(false);
+  }, [id]);
+
   const relatedTools = tool ? getRelatedTools(tool) : [];
 
   const handleShare = async () => {
@@ -40,6 +45,22 @@ const ToolDetailPage: React.FC = () => {
     }
   };
 
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+  };
+
+  const getGradientClass = (name: string) => {
+    const gradients = [
+      'from-blue-400 to-indigo-500',
+      'from-emerald-400 to-teal-500',
+      'from-orange-400 to-pink-500',
+      'from-purple-400 to-fuchsia-500',
+      'from-cyan-400 to-blue-500'
+    ];
+    const index = name.length % gradients.length;
+    return gradients[index];
+  };
+
 
   if (!tool) {
     return (
@@ -62,8 +83,21 @@ const ToolDetailPage: React.FC = () => {
            
            <div className="flex flex-col md:flex-row md:items-start gap-8">
               {/* Logo/Image */}
-              <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl overflow-hidden bg-white flex-shrink-0 border border-slate-200 shadow-sm p-4 flex items-center justify-center">
-                <img src={tool.imageUrl} alt={tool.name} className="max-w-full max-h-full object-contain" />
+              <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl overflow-hidden bg-white flex-shrink-0 border border-slate-200 shadow-sm p-2 flex items-center justify-center">
+                {!imageError ? (
+                  <img 
+                    src={tool.imageUrl} 
+                    alt={tool.name} 
+                    className="max-w-full max-h-full object-contain"
+                    onError={() => setImageError(true)}
+                  />
+                ) : (
+                  <div className={`w-full h-full rounded-xl bg-gradient-to-br ${getGradientClass(tool.name)} flex items-center justify-center shadow-lg`}>
+                    <span className="text-white font-display font-bold text-3xl tracking-wider">
+                      {getInitials(tool.name)}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Title & Main Actions */}
