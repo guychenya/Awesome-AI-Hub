@@ -4,7 +4,7 @@ import ToolCard from '../components/ToolCard';
 import FilterSidebar from '../components/FilterSidebar';
 import { getTools } from '../services/toolService';
 import { PricingModel, SortOption } from '../types';
-import { ChevronDown, SlidersHorizontal, X, PanelLeftClose, PanelLeftOpen, LayoutGrid, List } from 'lucide-react';
+import { ChevronDown, SlidersHorizontal, X, PanelLeftClose, PanelLeftOpen, LayoutGrid, List, ChevronsUp, Search } from 'lucide-react';
 
 const TOOLS_PER_PAGE = 12;
 
@@ -39,6 +39,7 @@ const HomePage: React.FC = () => {
   const [visibleCount, setVisibleCount] = useState(TOOLS_PER_PAGE);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isHeroOpen, setIsHeroOpen] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
   // Derive all filtered tools
@@ -91,14 +92,16 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-full bg-slate-50">
-      <Hero 
-        searchQuery={searchQuery} 
-        setSearchQuery={setSearchQuery}
-        selectedCategories={selectedCategories}
-        toggleCategory={toggleCategory}
-        selectedPricing={selectedPricing}
-        togglePricing={togglePricing}
-      />
+      <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isHeroOpen ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+        <Hero 
+          searchQuery={searchQuery} 
+          setSearchQuery={setSearchQuery}
+          selectedCategories={selectedCategories}
+          toggleCategory={toggleCategory}
+          selectedPricing={selectedPricing}
+          togglePricing={togglePricing}
+        />
+      </div>
 
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8 transition-all">
@@ -164,14 +167,25 @@ const HomePage: React.FC = () => {
           <div className="flex-1 min-w-0">
              <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                   {/* Sidebar Toggle Button */}
-                   <button 
-                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                     className="hidden lg:flex items-center justify-center p-2 rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition-colors bg-white border border-slate-200 shadow-sm"
-                     title={isSidebarOpen ? "Collapse Filters" : "Expand Filters"}
-                   >
-                     {isSidebarOpen ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
-                   </button>
+                   <div className="flex items-center gap-2">
+                       {/* Sidebar Toggle Button */}
+                       <button 
+                         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                         className="hidden lg:flex items-center justify-center p-2 rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition-colors bg-white border border-slate-200 shadow-sm"
+                         title={isSidebarOpen ? "Collapse Filters" : "Expand Filters"}
+                       >
+                         {isSidebarOpen ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
+                       </button>
+
+                       {/* Hero Toggle Button */}
+                       <button 
+                         onClick={() => setIsHeroOpen(!isHeroOpen)}
+                         className={`hidden lg:flex items-center justify-center p-2 rounded-lg transition-colors border shadow-sm ${!isHeroOpen ? 'bg-brand-50 text-brand-600 border-brand-200 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-200 hover:text-slate-900'}`}
+                         title={isHeroOpen ? "Collapse Search Header" : "Expand Search Header"}
+                       >
+                         {isHeroOpen ? <ChevronsUp size={20} /> : <Search size={20} />}
+                       </button>
+                   </div>
 
                    <p className="text-slate-500 text-sm">
                      Showing <span className="font-bold text-slate-900">{displayedTools.length}</span> of {allFilteredTools.length} tools
