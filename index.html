@@ -7,11 +7,9 @@
     <title>SeekCompass</title>
     <script>
       // Polyfill for process.env to prevent ReferenceError in browser environment
-      window.process = {
-        env: {
-          NODE_ENV: 'production'
-        }
-      };
+      window.process = window.process || {};
+      window.process.env = window.process.env || {};
+      window.process.env.NODE_ENV = window.process.env.NODE_ENV || 'production';
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
